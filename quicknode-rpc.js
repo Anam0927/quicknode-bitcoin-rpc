@@ -96,7 +96,7 @@ async function main() {
   // we will loop until we reach blocks older than 1 hour
   let currentHash = hash;
   let currentBlock = await getBlock(currentHash);
-  let currentBlockTime = currentBlock.mediantime;
+  let currentBlockTime = currentBlock.time;
   const oneHourAgo = Math.floor(Date.now() / 1000) - 3600;
 
   while (currentBlockTime > oneHourAgo) {
@@ -113,8 +113,6 @@ async function main() {
       b.vout.reduce((sum, v) => sum + v.value, 0) -
       a.vout.reduce((sum, v) => sum + v.value, 0)
   )[0];
-
-  console.log(largestTx.txid);
 
   const value = largestTx.vout.reduce((sum, v) => sum + v.value, 0);
   const vin = largestTx.vin;
