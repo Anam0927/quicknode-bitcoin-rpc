@@ -108,27 +108,37 @@ async function main() {
 
   const allTxs = lastHourBlocks.flatMap((block) => block.tx);
 
-  const largestTx = allTxs.sort(
-    (a, b) =>
-      b.vout.reduce((sum, v) => sum + v.value, 0) -
-      a.vout.reduce((sum, v) => sum + v.value, 0)
-  )[0];
+  const largest10Txs = allTxs
+    .sort(
+      (a, b) =>
+        b.vout.reduce((sum, v) => sum + v.value, 0) -
+        a.vout.reduce((sum, v) => sum + v.value, 0)
+    )
+    .slice(0, 10);
 
-  const value = largestTx.vout.reduce((sum, v) => sum + v.value, 0);
-  const vin = largestTx.vin;
-  const vinTxids = vin.map((v) => v.txid);
-  const vinVouts = vin.map((v) => v.vout);
-  const vinDetails = await Promise.all(vinTxids.map((id) => getTx(id)));
-  const vinVoutAddresses = vinDetails.map((tx, index) => {
-    const voutIndex = vinVouts[index];
-    return tx.vout[voutIndex].scriptPubKey.address;
-  });
-  const senderAddresses = vinVoutAddresses;
-  const receiverAddresses = largestTx.vout.map((v) => v.scriptPubKey.address);
+  const largest10TxOutput = [];
 
-  console.log(`The largest transaction in the last hour was ${value} BTC`);
-  console.log("Sender addresses details:", senderAddresses);
-  console.log("Receiver addresses details:", receiverAddresses);
+  for (const tx of largest10Txs) {
+    const value = tx.vout.reduce((sum, v) => sum + v.value, 0);
+
+    const vin = tx.vin;
+    const vinTxids = vin.map((v) => v.txid);
+    const vinDetails = await Promise.all(vinTxids.map((id) => getTx(id)));
+
+    const vinVouts = vin.map((v) => v.vout);
+    const vinVoutAddresses = vinDetails.map((t, index) => {
+      const voutIndex = vinVouts[index];
+      if (!t || !t.vout[voutIndex]) return "unknown";
+      return t.vout[voutIndex].scriptPubKey.address;
+    });
+    const senderAddresses = vinVoutAddresses;
+
+    const receiverAddresses = tx.vout.map((v) => v.scriptPubKey.address);
+
+    largest10TxOutput.push({ value, senderAddresses, receiverAddresses });
+  }
+
+  console.log(largest10TxOutput);
 }
 
 main();
